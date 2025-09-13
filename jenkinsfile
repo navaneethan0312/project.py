@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "navaneethan1204/project1-flask"
+        IMAGE_NAME = "navaneethan1204/project"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
@@ -15,29 +15,32 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                // Ensure pip is upgraded first
-                sh 'python3 -m pip install --upgrade pip'
-                sh 'pip install --no-cache-dir -r pyproject.toml'
+                sh '''
+                    python3 -m venv venv
+                    source venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                // Run tests if any, ignore if none
-                sh 'pytest || echo "No tests found"'
+                sh '''
+                    source venv/bin/activate
+                    pytest || echo "No tests or tests failed"
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                // Build Docker image from root folder
                 sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
 
         stage('Login to Docker Hub') {
             steps {
-                // Use Jenkins credentials to login to Docker Hub
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                 }
@@ -46,7 +49,6 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                // Push image to Docker Hub
                 sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
@@ -54,7 +56,6 @@ pipeline {
 
     post {
         always {
-            // Show running containers for debugging
             sh 'docker ps -a'
         }
     }
