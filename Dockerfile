@@ -1,7 +1,11 @@
 FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y python3-venv python3-pip && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3-venv python3-pip --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/* && \
+    python3 -m pip install --upgrade pip
 
-RUN python3 -m venv /venv && /venv/bin/pip install --upgrade pip
+WORKDIR /app
 
-ENV PATH="/venv/bin:$PATH"
+COPY . .
+
+CMD ["python3", "src/app.py"]
